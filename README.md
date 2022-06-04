@@ -1,1 +1,1 @@
-# digifarm-echoacoustics
+# digifarm-ecoacoustics
