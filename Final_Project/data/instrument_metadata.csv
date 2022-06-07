@@ -1,0 +1,21 @@
+site,station_name,latitude,longitude,habitat,instrument_name,instrument_id,type
+1.0,Plot01,-30.257828,149.85421,Pasture,A18,1,FL acoustic
+1.0,Plot02,-30.262051,149.84531,Pasture,A01,3,FL acoustic
+1.0,Plot03,-30.261552,149.850923,Cropping,A15,13,FL acoustic
+1.0,Plot04,-30.272886,149.842294,Pasture,A14,15,FL acoustic
+1.0,Plot05,-30.283397,149.832137,Pasture,A19,19,FL acoustic
+1.0,Plot06,-30.27316,149.851765,Forest,A16,23,FL acoustic
+1.0,Plot07,-30.273261,149.863435,Forest,A17,27,FL acoustic
+1.0,Plot08,-30.270033,149.859446,Forest,A03,29,FL acoustic
+1.0,Plot09,-30.27255,149.873411,Pasture,A13,31,FL acoustic
+1.0,Plot10,-30.282417,149.874738,Pasture,A11,33,FL acoustic
+1.0,Plot11,-30.281945,149.885729,Pasture,A10,37,FL acoustic
+1.0,Plot12,-30.265282,149.872835,Cropping,A05,35,FL acoustic
+1.0,Plot13,-30.262395,149.881236,Cropping,A08,40,FL acoustic
+1.0,Plot14,-30.256375,149.877495,Cropping,A06,47,FL acoustic
+1.0,Plot15,-30.254488,149.885535,Pasture,A04,51,FL acoustic
+1.0,Plot16,-30.254435,149.892036,Pasture,A07,55,FL acoustic
+1.0,Plot17,-30.259092,149.892071,Cropping,A20,53,FL acoustic
+1.0,Plot18,-30.272672,149.895697,Cropping,A02,59,FL acoustic
+1.0,Plot19,-30.272348,149.885054,Cropping,A09,63,FL acoustic
+1.0,Plot20,-30.257181,149.864017,Pasture,A12,61,FL acoustic
