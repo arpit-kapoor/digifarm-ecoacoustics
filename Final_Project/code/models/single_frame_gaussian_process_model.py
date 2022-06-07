@@ -29,13 +29,13 @@ class SingleFrameGaussianProcessModel(EcoacousticModel):
         if self.trained:
             
             n_points = int(np.sqrt(x1x2.shape[0]))
-            X0p, X1p = x1x2[:,0].reshape(n_points,n_points), x1x2[:,1].reshape(n_points,n_points)
 
             y_pred, MSE = self.gp.predict(x1x2, return_std=True)
             y_lower = y_pred - 2*MSE
             y_higher = y_pred + 2*MSE
 
             if plot: 
+                X0p, X1p = x1x2[:,0].reshape(n_points,n_points), x1x2[:,1].reshape(n_points,n_points)
                 Zp_mean = np.reshape(y_pred,(n_points,n_points))
                 Zp_lower = np.reshape(y_lower,(n_points,n_points))
                 Zp_higher = np.reshape(y_higher,(n_points,n_points))

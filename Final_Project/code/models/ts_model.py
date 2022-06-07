@@ -7,31 +7,31 @@ from matplotlib import pyplot as plt
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.arima.model import ARIMA
 
 from models.ecoacoustic_model import EcoacousticModel
 
 class TSModel(EcoacousticModel): 
-#         filename = 
-    def __init__(self, single_site_data, period, test_ratio=0.3):
-        super().__init__() 
-        self.period = period
-        self.single_site_data = single_site_data
-        self.T = single_site_data.shape[0]
-        self.train_data, self.test_data = self.split_train_test(test_ratio)    
     
-    def split_train_test(self, test_ratio=0.3):
-        indices = self.single_site_data.index.values
-        train_indices = indices[:int(self.T*(1-test_ratio))]
-        test_indices = indices[int(self.T*(1-test_ratio)):]
+    def __init__(self, p=1, d=0, q=0):
+        super().__init__() 
+        self.period = self.p = p
+        self.d = d
+        self.q = q  
+    
+    def split_train_test(self, X, test_ratio=0.3):
+
+        self.T = X.shape[0]
+        train_size = int(self.T*(1-test_ratio))
         
-        train_data = self.single_site_data[train_indices]
-        test_data = self.single_site_data[test_indices]
+        train_data = X[:train_size]
+        test_data = X[train_size:]
         
         return train_data, test_data       
         
         
-    def seasonal_decompose(self):
-        decomposition = STL(self.single_site_data, period=self.period).fit()
+    def seasonal_decompose(self, X):
+        decomposition = STL(X, period=self.p).fit()
         fig = decomposition.plot()
         fig.set_size_inches(14,7)
         plt.show()
@@ -39,67 +39,38 @@ class TSModel(EcoacousticModel):
         return decomposition
     
     def plot_autocorrelations(self, y, plot_lims=True):
+        T = y.shape[0]
         ac = sm.tsa.stattools.acf(y)
         x = range(1, len(ac)+1)
         plt.figure()
         plt.bar(x, ac)
         if plot_lims:
-            plt.axhline(y=2/np.sqrt(self.T), color='r', linestyle='--', alpha=0.5, label='$2/\sqrt{T}$')
-            plt.axhline(y=-2/np.sqrt(self.T), color='r', linestyle='--', alpha=0.5, label='$-2/\sqrt{T}$')
+            plt.axhline(y=2/np.sqrt(T), color='r', linestyle='--', alpha=0.5, label='$2/\sqrt{T}$')
+            plt.axhline(y=-2/np.sqrt(T), color='r', linestyle='--', alpha=0.5, label='$-2/\sqrt{T}$')
         plt.xlabel('i')
         plt.ylabel('ρ_i')
         plt.legend()
         plt.show()
     
-    def make_ts_stationary(self, y):
-        pass
         
+    def train(self, X, verbose=False,  plot=False, **kwargs):
         
-    def fit_model(self, model='ETS', verbose=False, **kwargs):
+        # fit model
+        model = ARIMA(
+            X, 
+            order=(kwargs.get('p', self.p), 
+                   kwargs.get('d', self.d), 
+                   kwargs.get('q', self.q)
+                  )
+        )
         
-        self.model = model
-        
-        if model=='ETS':
+        self.fitted_model = model.fit()
 
-            ## Define the ETS Model
-            ets_model = ExponentialSmoothing(
-                self.train_data,
-                trend='additive',
-                seasonal='additive',
-                seasonal_periods=24
-            )
-
-            ## Fit model
-            self.fitted_model = ets_model.fit()
-
-            if verbose:
-                print('')
-                print('== Holt-Winters Additive ETS(A,A,A) Parameters ==')
-                print('')
-                alpha_value = np.round(fitted_model.params['smoothing_level'], 4)
-                print('Smoothing Level: ', alpha_value)
-                print('Smoothing Slope: ', np.round(fitted_model.params['smoothing_slope'], 4))
-                print('Smoothing Seasonal: ', np.round(fitted_model.params['smoothing_seasonal'], 4))
-                print('Initial Level: ', np.round(fitted_model.params['initial_level'], 4))
-                print('Initial Slope: ', np.round(fitted_model.params['initial_slope'], 4))
-                print('Initial Seasons: ', np.round(fitted_model.params['initial_seasons'], 4))
-                print('')
-        
-        elif model=='ARIMA':
-            
-            # fit model
-            model = ARIMA(
-                self.train_data, 
-                order=(kwargs.get('p', self.period), 
-                       kwargs.get('d', 0), 
-                       kwargs.get('q', 0)
-                      )
-            )
-            self.fitted_model = model.fit()
-
-            # summary of fit model
+        # summary of fit model
+        if verbose:
             print(self.fitted_model.summary())
 
+        if plot:
             # line plot of residuals
             residuals = pd.DataFrame(self.fitted_model.resid)
             self.plot_autocorrelations(residuals)
@@ -108,13 +79,26 @@ class TSModel(EcoacousticModel):
             residuals.plot(kind='kde')
             plt.show()
 
-            # summary stats of residuals
+        # summary stats of residuals
+        if verbose:
             print(residuals.describe())
+    
+    def predict(self, steps, conf_int=0.1):
+        y_hat = self.fitted_model.forecast(steps=steps)
+        result = self.fitted_model.get_forecast(steps).conf_int(conf_int)
+        if isinstance(result, pd.DataFrame):
+            result = result.values
+        y_lower = result[:, 0]
+        y_upper = result[:, 1]
+        return y_hat, y_lower, y_upper
+
             
-    def get_one_period_ahead_pred(self, **kwargs):
+    def get_one_period_ahead_pred(self, X, **kwargs):
         
         # Preds
         preds = []
+        self.train_data, self.test_data = self.split_train_test(X, test_ratio=kwargs.get('test_ratio', 0.3))
+
         updated_data = self.train_data.copy()
         
         # Iterate indicies for periods
@@ -143,7 +127,7 @@ class TSModel(EcoacousticModel):
             df_pred = fitted_model.get_forecast(len(indices)).conf_int(0.1)
             df_pred.columns = ['5%', '95%']
             df_pred.loc[:, 'y_hat'] = y_hat
-            df_pred.loc[:, 'y'] = test_samples
+            df_pred.loc[:, 'y'] = test_samples.values
             
             # Append preds
             preds.append(df_pred)
@@ -169,34 +153,3 @@ class TSModel(EcoacousticModel):
         self.plot_autocorrelations(df_test_pred.resid)
         
         return df_test_pred
-
-    def evaluate(self):
-                
-        ## Forecast for test samples    
-        y_hat =  self.fitted_model.forecast(steps=len(self.test_data))
-        
-        if self.model=='ARIMA':
-            df_test_pred = self.fitted_model.get_forecast(len(self.test_data)).conf_int(0.1)
-            df_test_pred.columns = ['5%', '95%']
-            df_test_pred.loc[:, 'y_hat'] = y_hat
-            df_test_pred.loc[:, 'y'] = self.test_data
-        else:
-            df_test_pred = pd.DataFrame({'y_hat':y_hat,'y':self.test_data})
-        
-        
-        ## Plot predictions
-        fig, ax = plt.subplots(figsize=(20, 5))
-        if self.model == 'ARIMA':
-            plt.plot(df_test_pred.loc[:, 'y'], label='y', c='tab:red')
-            plt.plot(df_test_pred.loc[:, 'y_hat'], label='y_hat', c='tab:green')
-            plt.plot(df_test_pred.loc[:, '5%'], label='5%', color='g', linestyle='--', alpha=0.5)
-            plt.plot(df_test_pred.loc[:, '95%'], label='95%', color='g', linestyle='--', alpha=0.5)
-            plt.fill_between(df_test_pred.index, df_test_pred.loc[:, '5%'], df_test_pred.loc[:, '95%'], 
-                             color='g', alpha=0.25)
-            plt.legend()
-        else:
-            df_test_pred.plot(ax=ax)
-        
-        ## Residuals
-        df_test_pred.loc[:, 'resid'] = df_test_pred.y_hat - df_test_pred.y
-        self.plot_autocorrelations(df_test_pred.resid)
