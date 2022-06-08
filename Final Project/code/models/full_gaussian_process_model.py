@@ -6,7 +6,8 @@ import datetime as dt
 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
-
+from sklearn.gaussian_process.kernels import Matern
+from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
 from models.ecoacoustic_model import EcoacousticModel
 
 
@@ -16,11 +17,13 @@ class FullGaussianProcessModel(EcoacousticModel):
         super().__init__()
         self.path = '../results/GPs/full_gp/'
         self.trained = False
-        self.gp = GaussianProcessRegressor(n_restarts_optimizer=15)
+        #self.kernel = RBF([10,10,10], (1e-2, 1e-2))
+        self.kernel = Matern([10,10,10], (1e-2, 1e-2), nu=1.5) +  WhiteKernel(noise_level=0.5)
+        self.gp = GaussianProcessRegressor(self.kernel, n_restarts_optimizer=15)
         
     def train(self, X, y):
-        self.filename = self.path + 'full_gp_'+str(np.unique(X[:,0]).size)+'_stations.gif'
-        self.filename_MSE = self.path + 'full_gp_'+str(np.unique(X[:,0]).size)+'_stations_MSE.gif'
+        self.filename = self.path + 'full_gp_'+str(np.unique(X[:,0]).size)+'_stationsnewkernel.gif'
+        self.filename_MSE = self.path + 'full_gp_'+str(np.unique(X[:,0]).size)+'_stationsnewkernel2_MSE.gif'
         self.X = X
         self.y = y
         self.gp.fit(X, y)
@@ -28,6 +31,7 @@ class FullGaussianProcessModel(EcoacousticModel):
 
     def predict(self, x1x2x3, plot = False):
         if self.trained:
+            #y_pred, MSE = self.gp.predict(x1x2x3, return_cov=True)
             y_pred, MSE = self.gp.predict(x1x2x3, return_std=True)
 
             y_lower = y_pred - 2*MSE
@@ -141,5 +145,5 @@ class FullGaussianProcessModel(EcoacousticModel):
             title_2.set_text(format_title(MSE.columns[i+1]))
             return MSE_plot
         
-        anim_MSE = FuncAnimation(fig2, animate_MSE, interval=500, frames=MSE.shape[1] - 1)
+        anim_MSE = FuncAnimation(fig2, animate_MSE, interval=500, frames=MSE.shape[1] - 1,blit=False)
         self.save_results(anim_MSE,self.filename_MSE,True)
