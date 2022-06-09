@@ -27,7 +27,7 @@ class SiteSelection(EcoacousticAnalysis):
             elif ac_func_name == 'std':
                 ac_func_values.append(self.std(sigma))
             elif ac_func_name == 'ymaxstd':
-                ac_func_values.append(self.ymaxstd(sigma,y_pred))
+                ac_func_values.append(self.ymaxstd(sigma,y_pred[time]))
                 
                 
                 
