@@ -2,6 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
+from sklearn.gaussian_process.kernels import Matern
+from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
 
 from models.ecoacoustic_model import EcoacousticModel
 
@@ -10,7 +12,9 @@ class SingleFrameGaussianProcessModel(EcoacousticModel):
         super().__init__()
 
         # Input space
-        kernel = RBF([1,1], (1e-2, 1e-2))
+        #kernel = RBF([1,1], (1e-2, 1e-2))
+        kernel = Matern([10,10], (1e-2, 1e-2), nu=1.5) +  WhiteKernel(noise_level=0.5)
+
         self.gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=15)
         
         self.title = ("_".join(str(title).split())).replace(':','')
@@ -29,21 +33,14 @@ class SingleFrameGaussianProcessModel(EcoacousticModel):
         if self.trained:
             
             n_points = int(np.sqrt(x1x2.shape[0]))
-<<<<<<< HEAD:Final Project/code/models/single_frame_gaussian_process_model.py
-            
-=======
->>>>>>> 5cf5e6f0cb2456c4555dbfdbe43328b466d3e182:Final_Project/code/models/single_frame_gaussian_process_model.py
+
 
             y_pred, MSE = self.gp.predict(x1x2, return_std=True)
             y_lower = y_pred - 2*MSE
             y_higher = y_pred + 2*MSE
 
             if plot: 
-<<<<<<< HEAD:Final Project/code/models/single_frame_gaussian_process_model.py
-			X0p, X1p = x1x2[:,0].reshape(n_points,n_points), x1x2[:,1].reshape(n_points,n_points)
-=======
                 X0p, X1p = x1x2[:,0].reshape(n_points,n_points), x1x2[:,1].reshape(n_points,n_points)
->>>>>>> 5cf5e6f0cb2456c4555dbfdbe43328b466d3e182:Final_Project/code/models/single_frame_gaussian_process_model.py
                 Zp_mean = np.reshape(y_pred,(n_points,n_points))
                 Zp_lower = np.reshape(y_lower,(n_points,n_points))
                 Zp_higher = np.reshape(y_higher,(n_points,n_points))
