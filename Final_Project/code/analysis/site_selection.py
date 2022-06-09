@@ -39,7 +39,7 @@ class SiteSelection(EcoacousticAnalysis):
         return sigma
     
     def ymaxstd(self,sigma,y_pred):
-        return std + np.max(y_pred)
+        return sigma + np.max(y_pred)
     
     def ucb(self,mu,sigma,kappa=1):
         return mu + kappa*sigma
