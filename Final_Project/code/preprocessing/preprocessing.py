@@ -34,7 +34,7 @@ class PreProcessing:
         
         lats, longs, times,vals = [],[],[],[]
         
-        for name in self.names:
+        for name in data.columns:
             for time in data[name].index:
                 lats.append(self.current_metadata['latitude'][name])
                 longs.append(self.current_metadata['longitude'][name])

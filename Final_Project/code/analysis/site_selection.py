@@ -9,7 +9,7 @@ class SiteSelection(EcoacousticAnalysis):
         super().__init__()
         
         self.path = '../results/site_selection/'
-        self.filename = self.path + ac_func_name + '_for_' + str(num_sites) + '_stations.png'
+        self.filename = self.path + ac_func_name + '_for_' + str(num_sites) + '_stations2.png' +
         self.long_lats = np.array([list(item) for item in y_pred.index])
         
         self.ac_func_name = ac_func_name        
@@ -24,11 +24,18 @@ class SiteSelection(EcoacousticAnalysis):
                 ac_func_values.append(self.pi(mu,sigma,y_pred[time]))
             elif ac_func_name == 'EI':
                 ac_func_values.append(self.ei(mu,sigma,y_pred[time]))
-        
+            elif ac_func_name == 'std':
+                ac_func_values.append(self.std(sigma))
+                
+                
+                
         mean_ac_func_values = np.mean(ac_func_values,axis=0)
         self.next_loc = self.long_lats[np.argmax(mean_ac_func_values)]
         self.plot_mean_ac_func(mean_ac_func_values)
         
+    def std(self,sigma):
+        return sigma
+    
     
     def ucb(self,mu,sigma,kappa=1):
         return mu + kappa*sigma
