@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
@@ -29,21 +30,66 @@ class SingleFrameGaussianProcessModel(EcoacousticModel):
         self.filename = self.path + 'single_frame_gp_'+str(X.shape[0])+'_stations_at_'+self.title +'.png'
         self.trained = True
         
-    def predict(self, x1x2, plot = False):
+    def predict(self, x1x2,latlons, plot = False):
         if self.trained:
-            
-            n_points = int(np.sqrt(x1x2.shape[0]))
+            latlons = np.array(latlons)
+            lonlats = np.array([latlons[:,1],latlons[:,0]]).T
+            str_lonlats = ["_".join(map(str, x)) for x in lonlats]
 
+            n_points = int(np.sqrt(lonlats.shape[0]))
 
             y_pred, MSE = self.gp.predict(x1x2, return_std=True)
-            y_lower = y_pred - 2*MSE
-            y_higher = y_pred + 2*MSE
+            y_lower1 = y_pred - 2*MSE
+            y_higher1 = y_pred + 2*MSE
+            y_lower = [item if item >= 0 else 0 for item in y_lower1]
+            y_higher = [item if item >= 0 else 0 for item in y_higher1]
 
+            
+            y_pred_df = pd.DataFrame({'long':x1x2[:,0],'lat':x1x2[:,1],'val':y_pred})
+            y_pred_df = y_pred_df.set_index(['long','lat'])
+            y_pred_df['new_index'] = ["_".join(map(str, x)) for x in y_pred_df.index]
+            y_pred_df = y_pred_df.set_index('new_index')
+            y_pred_df = y_pred_df.reindex(str_lonlats)
+            y_pred_df['longs'] = [float(num.split('_')[0]) for num in y_pred_df.index]
+            y_pred_df['lats'] = [float(num.split('_')[1]) for num in y_pred_df.index]
+            y_pred_df = y_pred_df.set_index(['longs','lats'])
+
+            
+            y_lower_df = pd.DataFrame({'long':x1x2[:,0],'lat':x1x2[:,1],'val':y_lower})
+            y_lower_df = y_lower_df.set_index(['long','lat'])
+            y_lower_df['new_index'] = ["_".join(map(str, x)) for x in y_lower_df.index]
+            y_lower_df = y_lower_df.set_index('new_index')
+            y_lower_df = y_lower_df.reindex(str_lonlats)
+            y_lower_df['longs'] = [float(num.split('_')[0]) for num in y_lower_df.index]
+            y_lower_df['lats'] = [float(num.split('_')[1]) for num in y_lower_df.index]
+            y_lower_df = y_lower_df.set_index(['longs','lats'])
+
+            
+            y_higher_df = pd.DataFrame({'long':x1x2[:,0],'lat':x1x2[:,1],'val':y_higher})
+            y_higher_df = y_higher_df.set_index(['long','lat'])
+            y_higher_df['new_index'] = ["_".join(map(str, x)) for x in y_higher_df.index]
+            y_higher_df = y_higher_df.set_index('new_index')
+            y_higher_df = y_higher_df.reindex(str_lonlats)
+            y_higher_df['longs'] = [float(num.split('_')[0]) for num in y_higher_df.index]
+            y_higher_df['lats'] = [float(num.split('_')[1]) for num in y_higher_df.index]
+            y_higher_df = y_higher_df.set_index(['longs','lats'])
+
+            
+            MSE_df = pd.DataFrame({'long':x1x2[:,0],'lat':x1x2[:,1],'val':MSE})
+            MSE_df = MSE_df.set_index(['long','lat'])
+            MSE_df['new_index'] = ["_".join(map(str, x)) for x in MSE_df.index]
+            MSE_df = MSE_df.set_index('new_index')
+            MSE_df = MSE_df.reindex(str_lonlats)
+            MSE_df['longs'] = [float(num.split('_')[0]) for num in MSE_df.index]
+            MSE_df['lats'] = [float(num.split('_')[1]) for num in MSE_df.index]
+            MSE_df = MSE_df.set_index(['longs','lats'])     
+                                            
             if plot: 
-                X0p, X1p = x1x2[:,0].reshape(n_points,n_points), x1x2[:,1].reshape(n_points,n_points)
-                Zp_mean = np.reshape(y_pred,(n_points,n_points))
-                Zp_lower = np.reshape(y_lower,(n_points,n_points))
-                Zp_higher = np.reshape(y_higher,(n_points,n_points))
+                X0p, X1p = lonlats[:,0].reshape(n_points,n_points), lonlats[:,1].reshape(n_points,n_points)
+                Zp_mean = np.reshape(y_pred_df.values,(n_points,n_points))
+                
+                Zp_lower = np.reshape(y_lower_df.values,(n_points,n_points))
+                Zp_higher = np.reshape(y_higher_df.values,(n_points,n_points))
 
                 vmin = np.min(y_lower)
                 vmax = np.max(y_higher)

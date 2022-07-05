@@ -29,7 +29,9 @@ class FullGaussianProcessModel(EcoacousticModel):
         self.gp.fit(X, y)
         self.trained = True
 
-    def predict(self, x1x2x3, plot = False):
+    def predict(self, x1x2x3,latlons, plot = False):
+        lonlats = np.array([latlons[:,1],latlons[:,0]]).T
+        self.lonlats = lonlats
         self.x1x2x3 = x1x2x3
         if self.trained:
             #y_pred, MSE = self.gp.predict(x1x2x3, return_cov=True)
@@ -47,6 +49,8 @@ class FullGaussianProcessModel(EcoacousticModel):
             self.vmin_MSE = np.min(MSE)
             self.vmax_MSE = np.max(MSE)
             
+            str_lonlats = ["_".join(map(str, x)) for x in lonlats]
+            
             raw_data = pd.DataFrame({'long':self.X[:,0],'lat':self.X[:,1],'time':self.X[:,2],'val':self.y}).set_index(['long','lat','time'])
             wide_raw_data =  raw_data.pivot_table(values=['val'], index= ['long','lat'],columns='time')
             wide_raw_data = wide_raw_data.droplevel(level=0, axis=1)
@@ -61,18 +65,42 @@ class FullGaussianProcessModel(EcoacousticModel):
             wide_ypred =  df.pivot_table(values=['y_pred'], index= ['long','lat'],columns='time')
             wide_ypred = wide_ypred.droplevel(level=0, axis=1)
             wide_ypred.columns.name = None
+            wide_ypred['new_index'] = ["_".join(map(str, x)) for x in wide_ypred.index]
+            wide_ypred = wide_ypred.set_index('new_index')
+            wide_ypred = wide_ypred.reindex(str_lonlats)
+            wide_ypred['longs'] = [float(num.split('_')[0]) for num in wide_ypred.index]
+            wide_ypred['lats'] = [float(num.split('_')[1]) for num in wide_ypred.index]
+            wide_ypred = wide_ypred.set_index(['longs','lats'])
 
             wide_ylower =  df.pivot_table(values=['y_lower'], index= ['long','lat'],columns='time')
             wide_ylower = wide_ylower.droplevel(level=0, axis=1)
             wide_ylower.columns.name = None
+            wide_ylower['new_index'] = ["_".join(map(str, x)) for x in wide_ylower.index]
+            wide_ylower = wide_ylower.set_index('new_index')
+            wide_ylower = wide_ylower.reindex(str_lonlats)
+            wide_ylower['longs'] = [float(num.split('_')[0]) for num in wide_ylower.index]
+            wide_ylower['lats'] = [float(num.split('_')[1]) for num in wide_ylower.index]
+            wide_ylower = wide_ylower.set_index(['longs','lats'])
 
             wide_yhigher =  df.pivot_table(values=['y_higher'], index= ['long','lat'],columns='time')
             wide_yhigher = wide_yhigher.droplevel(level=0, axis=1)
             wide_yhigher.columns.name = None
+            wide_yhigher['new_index'] = ["_".join(map(str, x)) for x in wide_yhigher.index]
+            wide_yhigher = wide_yhigher.set_index('new_index')
+            wide_yhigher = wide_yhigher.reindex(str_lonlats)
+            wide_yhigher['longs'] = [float(num.split('_')[0]) for num in wide_yhigher.index]
+            wide_yhigher['lats'] = [float(num.split('_')[1]) for num in wide_yhigher.index]
+            wide_yhigher = wide_yhigher.set_index(['longs','lats'])
 
             wide_MSE =  df.pivot_table(values=['MSE'], index= ['long','lat'],columns='time')
             wide_MSE = wide_MSE.droplevel(level=0, axis=1)
             wide_MSE.columns.name = None
+            wide_MSE['new_index'] = ["_".join(map(str, x)) for x in wide_MSE.index]
+            wide_MSE = wide_MSE.set_index('new_index')
+            wide_MSE = wide_MSE.reindex(str_lonlats)
+            wide_MSE['longs'] = [float(num.split('_')[0]) for num in wide_MSE.index]
+            wide_MSE['lats'] = [float(num.split('_')[1]) for num in wide_MSE.index]
+            wide_MSE = wide_MSE.set_index(['longs','lats'])
 
             if plot:
                 self.create_animation(wide_ypred, wide_ylower, wide_yhigher, wide_MSE, wide_raw_data)
@@ -82,11 +110,10 @@ class FullGaussianProcessModel(EcoacousticModel):
             print('Train the model first!')
         
     def create_animation(self,pred,lower,higher,MSE, raw_data):
-        long_lats = np.array([list(item) for item in pred.index])
         raw_long_lats = np.array([list(item) for item in raw_data.index])
 
-        n_points = int(np.sqrt(long_lats[:,0].size))
-        X0, X1 = long_lats[:,0].reshape(n_points,n_points), long_lats[:,1].reshape(n_points,n_points)
+        n_points = int(np.sqrt(self.lonlats[:,0].size))
+        X0, X1 = self.lonlats[:,0].reshape(n_points,n_points), self.lonlats[:,1].reshape(n_points,n_points)
 
         def format_title(datetime):
             return str(dt.datetime.fromtimestamp(int(np.round(datetime,0))).date())
@@ -109,14 +136,14 @@ class FullGaussianProcessModel(EcoacousticModel):
         ax1[2].set_xlabel('Longitude')
         ax1[2].set_ylabel('Latitude') 
         
-        lower_plot = ax1[0].pcolormesh(X0, X1, np.reshape(lower[lower.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='Greens',shading='auto')
-        lower_plot_scatter = ax1[0].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='b')
+        lower_plot = ax1[0].pcolormesh(X0, X1, np.reshape(lower[lower.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='RdBu_r',shading='auto')
+        lower_plot_scatter = ax1[0].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='g')
 
-        pred_plot = ax1[1].pcolormesh(X0, X1, np.reshape(pred[pred.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='Greens',shading='auto')
-        pred_plot_scatter = ax1[1].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='b')
+        pred_plot = ax1[1].pcolormesh(X0, X1, np.reshape(pred[pred.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='RdBu_r',shading='auto')
+        pred_plot_scatter = ax1[1].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='g')
         
-        higher_plot = ax1[2].pcolormesh(X0, X1, np.reshape(higher[higher.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='Greens',shading='auto')
-        higher_plot_scatter = ax1[2].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='b')
+        higher_plot = ax1[2].pcolormesh(X0, X1, np.reshape(higher[higher.columns[0]].values,(n_points,n_points)),vmin=self.vmin,vmax=self.vmax,cmap='RdBu_r',shading='auto')
+        higher_plot_scatter = ax1[2].scatter(raw_long_lats[:,0], raw_long_lats[:,1], s = raw_data[raw_data.columns[0]].values*100,c='g')
         fig1.colorbar(pred_plot, cax=ax1[3])
         
         title_1 = fig1.suptitle(format_title(pred.columns[0]))

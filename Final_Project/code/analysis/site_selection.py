@@ -28,11 +28,9 @@ class SiteSelection(EcoacousticAnalysis):
                 ac_func_values.append(self.std(sigma))
             elif ac_func_name == 'ymaxstd':
                 ac_func_values.append(self.ymaxstd(sigma,mu))
-                
-                
-                
+                                
         mean_ac_func_values = np.mean(ac_func_values,axis=0)
-        self.next_loc = self.long_lats[np.argmax(mean_ac_func_values)]
+        self.next_loc = self.long_lats[np.argmax(np.nan_to_num(mean_ac_func_values))]
         self.plot_mean_ac_func(mean_ac_func_values)
         
     def std(self,sigma):
@@ -65,7 +63,8 @@ class SiteSelection(EcoacousticAnalysis):
         ax.set_ylabel('Latitude')
         ax.text(np.min(self.long_lats[:,0]), np.min(self.long_lats[:,1]), 'Next site location is: ' + str(self.next_loc))
         
-        ac_func_plot = ax.pcolormesh(X0,X1,vals,cmap='RdBu_r',shading='auto')        
+        ac_func_plot = ax.pcolormesh(X0,X1,vals,cmap='RdBu_r',shading='auto')     
+        ax.scatter([self.next_loc[0]],[self.next_loc[1]],color='g',s=100)
         fig.colorbar(ac_func_plot)
         self.save_results(fig,self.filename)
         
